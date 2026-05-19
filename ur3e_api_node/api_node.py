@@ -24,7 +24,7 @@ Vector = Sequence[float]
 
 
 class UR3eApiNode(Node):
-    """Expose the Robot class as ROS 2 services and telemetry topics."""
+    """Expone la clase Robot como servicios ROS 2 y topics de telemetría."""
 
     def __init__(self) -> None:
         super().__init__("ur3e_api")
@@ -34,6 +34,7 @@ class UR3eApiNode(Node):
         self.declare_parameter("refresh_rate", 1.0)
 
         self._robot = Robot(self.get_parameter("robot_ip").value)
+        # RTDE no es thread-safe para llamadas concurrentes; todas pasan por este lock.
         self._lock = Lock()
 
         self._pose_pub = self.create_publisher(Float64MultiArray, "tcp_pose", 10)
@@ -53,6 +54,7 @@ class UR3eApiNode(Node):
                 self.get_logger().error(f"Startup robot connection failed: {message}")
 
     def _create_services(self) -> None:
+        # Servicios de estado y control que no necesitan mensajes personalizados.
         self.create_service(Trigger, "connect", self._handle_connect)
         self.create_service(Trigger, "reconnect", self._handle_reconnect)
         self.create_service(Trigger, "check_connection", self._handle_check_connection)
@@ -63,6 +65,7 @@ class UR3eApiNode(Node):
         self.create_service(Trigger, "freedrive_on", self._handle_freedrive_on)
         self.create_service(Trigger, "freedrive_off", self._handle_freedrive_off)
 
+        # Lecturas vectoriales: pose TCP, juntas, referencias y fuerza.
         self.create_service(GetVector, "get_pos", self._handle_get_pos)
         self.create_service(GetVector, "get_joints", self._handle_get_joints)
         self.create_service(GetVector, "get_pos_init", self._handle_get_pos_init)
@@ -70,6 +73,7 @@ class UR3eApiNode(Node):
         self.create_service(GetVector, "get_force", self._handle_get_force)
         self.create_service(GetVector, "get_fuerzas", self._handle_get_force)
 
+        # Comandos de movimiento. Las unidades se documentan en DOC.md y en los .srv.
         self.create_service(MovePose, "a_move", self._handle_a_move)
         self.create_service(MoveOffset, "offset_move", self._handle_offset_move)
         self.create_service(MoveJoints, "joint_move", self._handle_joint_move)
@@ -101,6 +105,7 @@ class UR3eApiNode(Node):
                 new_robot_ip = str(param.value)
 
         if new_robot_ip is not None:
+            # Solo se sustituye el objeto Robot cuando no hay conexión activa.
             with self._lock:
                 self._robot = Robot(new_robot_ip)
         if new_refresh_rate is not None:
@@ -121,6 +126,7 @@ class UR3eApiNode(Node):
 
     def _publish_telemetry(self) -> None:
         if not self._is_connected():
+            # Evita leer RTDE antes de conectar o tras perder la conexión.
             return
 
         pose_ok, pose = self._read_robot_vector(self._robot.get_pos)
@@ -140,6 +146,7 @@ class UR3eApiNode(Node):
 
     def _call_robot(self, callback: Callable, *args):
         try:
+            # Centraliza exclusión mutua y conversión de excepciones a respuestas ROS.
             with self._lock:
                 value = callback(*args)
             return True, value
@@ -278,6 +285,7 @@ class UR3eApiNode(Node):
             )
             response.success = ok
             response.message = "ok" if ok else str(value)
+            # Devuelve la pose absoluta calculada para que el cliente pueda auditar el movimiento.
             response.target_pose = [float(item) for item in value] if ok else []
         except Exception as exc:
             response.success = False

@@ -76,6 +76,7 @@ class Robot:
     def connect(self):
         """Inicia la conexión tanto de entrada como de salida del robot"""
         try:
+            # Se importa aquí para poder arrancar el nodo sin RTDE si solo se prueban servicios locales.
             import rtde_control
             import rtde_receive
         except ImportError as exc:
@@ -176,6 +177,7 @@ class Robot:
         """
         current_pose = list(self.get_pos())
         target_pose = current_pose.copy()
+        # Los tres primeros valores son metros; si se pasan seis, los tres últimos son radianes.
         for index, value in enumerate(offset):
             target_pose[index] += value
         self.a_move(target_pose, speed, acc)

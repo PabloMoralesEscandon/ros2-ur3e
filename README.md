@@ -1,88 +1,155 @@
-# UR3e ROS 2 API
+# API ROS 2 para UR3e
 
-This package exposes the existing `robot.py` `Robot` class through ROS 2 services and publishes TCP telemetry.
+Este paquete expone la clase `Robot` de `robot.py` como un nodo ROS 2 y publica telemetria del TCP. Esta pensado para controlar un UR3e mediante RTDE desde ROS 2 Humble.
 
-## Parameters
+Para la documentacion completa de integracion, tipos de mensajes, ejemplos y notas de seguridad, consulta [DOC.md](DOC.md).
 
-- `robot_ip` (`string`, default `192.168.0.10`): UR controller IP.
-- `auto_connect` (`bool`, default `false`): call `connect` when the node starts.
-- `refresh_rate` (`double`, default `1.0`): telemetry publish rate in Hz. It can be changed at runtime.
+## Resumen
 
-## Topics
+- Paquete: `ur3e_api`
+- Nodo: `/ur3e_api`
+- Ejecutable: `ur3e_api_node`
+- Robot: Universal Robots UR3e
+- Conexion: RTDE mediante `ur_rtde`
 
-- `tcp_pose` (`std_msgs/msg/Float64MultiArray`): `Robot.get_pos()` every `1 / refresh_rate` seconds.
-- `tcp_force` (`std_msgs/msg/Float64MultiArray`): `Robot.get_fuerzas()` every `1 / refresh_rate` seconds.
+Las poses TCP usan el formato:
 
-## Services
+```text
+[x, y, z, rx, ry, rz]
+```
 
-Trigger services:
+`x`, `y`, `z` estan en metros. `rx`, `ry`, `rz` y las juntas estan en radianes.
 
-- `connect`
-- `reconnect`
-- `check_connection`
-- `is_steady`
-- `stop`
-- `speed_stop`
-- `end_servocontrol`
-- `freedrive_on`
-- `freedrive_off`
+## Instalacion y compilacion
 
-Vector getter services using `ur3e_api/srv/GetVector`:
-
-- `get_pos`
-- `get_joints`
-- `get_pos_init`
-- `get_pos_ref`
-- `get_force`
-- `get_fuerzas`
-
-Command services:
-
-- `a_move` (`ur3e_api/srv/MovePose`): `pose`, `speed`, `acceleration`
-- `offset_move` (`ur3e_api/srv/MoveOffset`): `offset`, `speed`, `acceleration`. The offset can be `[x, y, z]` or `[x, y, z, rx, ry, rz]` in meters/radians.
-- `joint_move` (`ur3e_api/srv/MoveJoints`): `joints`, `speed`, `acceleration`
-- `a_speed` (`ur3e_api/srv/SpeedCommand`): `vector`, `speed`, `acceleration`, `duration`
-- `servocontrol` (`ur3e_api/srv/Servo`): `coordinates`
-- `servocontrol_joint` (`ur3e_api/srv/Servo`): `coordinates`
-- `get_aprox` (`ur3e_api/srv/GetAprox`): `pose`
-
-All motion vectors are validated as six `float64` values before calling `robot.py`.
-
-## Usage
-
-Build from a sourced ROS 2 workspace:
+Dentro del contenedor o workspace ROS 2:
 
 ```bash
+cd /ros2-ur3e
+source /opt/ros/humble/setup.bash
+apt update
+apt install -y python3-pip
+python3 -m pip install ur_rtde
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-The driver also needs the Python RTDE modules used by `robot.py` (`rtde_control` and `rtde_receive`) available in the same environment:
+Si cambias archivos `.srv`, limpia antes de recompilar:
 
 ```bash
-python3 -m pip install ur_rtde
+rm -rf build install log
+colcon build --symlink-install
+source install/setup.bash
 ```
 
-Run the node:
+## Ejecutar el nodo
+
+Modo recomendado para pruebas, sin conectar automaticamente:
 
 ```bash
-ros2 run ur3e_api ur3e_api_node --ros-args -p robot_ip:=192.168.0.10 -p refresh_rate:=1.0
+ros2 run ur3e_api ur3e_api_node --ros-args \
+  -p robot_ip:=192.168.0.101 \
+  -p auto_connect:=false \
+  -p refresh_rate:=1.0
 ```
 
-Change telemetry rate at runtime:
+En otra terminal:
+
+```bash
+cd /ros2-ur3e
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+```
+
+## Parametros
+
+- `robot_ip` (`string`, por defecto `192.168.0.10`): IP del controlador UR.
+- `auto_connect` (`bool`, por defecto `false`): conecta al robot al arrancar si esta en `true`.
+- `refresh_rate` (`double`, por defecto `1.0`): frecuencia de publicacion de telemetria en Hz.
+
+Cambiar frecuencia de telemetria:
 
 ```bash
 ros2 param set /ur3e_api refresh_rate 5.0
 ```
 
-Example service call:
+## Topics
+
+- `/tcp_pose` (`std_msgs/msg/Float64MultiArray`): pose TCP actual `[x, y, z, rx, ry, rz]`.
+- `/tcp_force` (`std_msgs/msg/Float64MultiArray`): fuerza/par TCP actual `[fx, fy, fz, tx, ty, tz]`.
+
+Ejemplo:
 
 ```bash
-ros2 service call /a_move ur3e_api/srv/MovePose "{pose: [-0.192, -0.18212, 0.17233, 2.889, -1.211, 0.051], speed: 20.0, acceleration: 20.0}"
+ros2 topic echo /tcp_pose
 ```
 
-Move 5 mm in positive X and 10 mm in negative Y from the current TCP pose:
+## Servicios expuestos
+
+Servicios `std_srvs/srv/Trigger`:
+
+- `/connect`
+- `/reconnect`
+- `/check_connection`
+- `/is_steady`
+- `/stop`
+- `/speed_stop`
+- `/end_servocontrol`
+- `/freedrive_on`
+- `/freedrive_off`
+
+Servicios de lectura con `ur3e_api/srv/GetVector`:
+
+- `/get_pos`
+- `/get_joints`
+- `/get_pos_init`
+- `/get_pos_ref`
+- `/get_force`
+- `/get_fuerzas`
+
+Servicios de comando:
+
+- `/a_move` (`ur3e_api/srv/MovePose`): mueve a una pose TCP absoluta.
+- `/offset_move` (`ur3e_api/srv/MoveOffset`): mueve desde la pose actual aplicando un offset.
+- `/joint_move` (`ur3e_api/srv/MoveJoints`): mueve a una posicion articular absoluta.
+- `/a_speed` (`ur3e_api/srv/SpeedCommand`): inicia movimiento cartesiano por velocidad.
+- `/servocontrol` (`ur3e_api/srv/Servo`): ejecuta `servoL`.
+- `/servocontrol_joint` (`ur3e_api/srv/Servo`): ejecuta `servoJ`.
+- `/get_aprox` (`ur3e_api/srv/GetAprox`): calcula una pose de aproximacion sumando altura de seguridad en Z.
+
+## Prueba rapida
+
+Comprobar que el nodo responde:
+
+```bash
+ros2 node list
+ros2 service call /check_connection std_srvs/srv/Trigger "{}"
+ros2 service call /get_pos_init ur3e_api/srv/GetVector "{}"
+ros2 service call /get_aprox ur3e_api/srv/GetAprox "{pose: [0.1, 0.2, 0.3, 2.8, -1.2, 0.0]}"
+```
+
+Conectar al robot:
+
+```bash
+ros2 service call /connect std_srvs/srv/Trigger "{}"
+ros2 service call /check_connection std_srvs/srv/Trigger "{}"
+ros2 service call /get_pos ur3e_api/srv/GetVector "{}"
+ros2 service call /get_joints ur3e_api/srv/GetVector "{}"
+```
+
+Mover 5 mm en X positivo y 10 mm en Y negativo desde la pose actual:
 
 ```bash
 ros2 service call /offset_move ur3e_api/srv/MoveOffset "{offset: [0.005, -0.010, 0.0], speed: 5.0, acceleration: 5.0}"
 ```
+
+Detener movimientos:
+
+```bash
+ros2 service call /speed_stop std_srvs/srv/Trigger "{}"
+ros2 service call /stop std_srvs/srv/Trigger "{}"
+```
+
+## Seguridad
+
+Antes de mover el robot, verifica `/check_connection`, lee `/get_pos` y usa velocidades bajas. Los comandos `/a_move`, `/offset_move`, `/joint_move` y `/a_speed` pueden mover fisicamente el robot, asi que valida siempre las poses y manten acceso al paro de emergencia o al teach pendant.
