@@ -22,7 +22,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SpeedCommand.srv"
 )
 
-ament_python_install_package(${PROJECT_NAME})
+ament_python_install_package(ur3e_api_node)
 
 install(PROGRAMS
   scripts/ur3e_api_node

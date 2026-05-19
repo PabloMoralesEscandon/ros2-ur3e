@@ -10,7 +10,7 @@ def main():
         if path not in sys.path:
             sys.path.insert(0, path)
 
-    from ur3e_api.api_node import main as node_main
+    from ur3e_api_node.api_node import main as node_main
 
     node_main()
 
