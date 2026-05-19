@@ -20,9 +20,35 @@ Las poses TCP usan el formato:
 
 `x`, `y`, `z` estan en metros. `rx`, `ry`, `rz` y las juntas estan en radianes.
 
-## Instalacion y compilacion
+## Instalacion recomendada con Docker
 
-Dentro del contenedor o workspace ROS 2:
+La forma recomendada de usar este paquete es ejecutar ROS 2 Humble dentro de Docker. Asi evitas instalar ROS 2 directamente en tu sistema host y trabajas sobre una imagen oficial.
+
+1. Instala Docker siguiendo la documentacion oficial:
+
+   <https://docs.docker.com/engine/install/>
+
+2. Descarga la imagen oficial de ROS 2 Humble:
+
+```bash
+docker pull osrf/ros:humble-desktop
+```
+
+La imagen `osrf/ros` esta publicada en Docker Hub:
+
+<https://hub.docker.com/_/ros>
+
+3. Arranca un contenedor montando este repositorio:
+
+```bash
+docker run -it --net=host --privileged \
+  -v "$(pwd)":/ros2-ur3e \
+  osrf/ros:humble-desktop
+```
+
+Si el repositorio esta en otra ruta, ejecuta el comando desde la carpeta del repositorio o cambia el lado izquierdo del volumen.
+
+4. Dentro del contenedor, instala dependencias y compila:
 
 ```bash
 cd /ros2-ur3e
