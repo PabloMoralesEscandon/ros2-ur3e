@@ -3,8 +3,6 @@ import os
 from time import sleep
 
 import numpy as np
-import rtde_control
-import rtde_receive
 from scipy.spatial.transform import Rotation
 
 logger = logging.getLogger(__name__)
@@ -77,6 +75,15 @@ class Robot:
 
     def connect(self):
         """Inicia la conexión tanto de entrada como de salida del robot"""
+        try:
+            import rtde_control
+            import rtde_receive
+        except ImportError as exc:
+            raise ImportError(
+                "The ur_rtde Python modules are not installed. Install them in the "
+                "same environment with: python3 -m pip install ur_rtde"
+            ) from exc
+
         try:
             self.rtde_c = rtde_control.RTDEControlInterface(self.ip, 50)  # (OUT)
             self.rtde_r = rtde_receive.RTDEReceiveInterface(self.ip, 50)  # (IN)

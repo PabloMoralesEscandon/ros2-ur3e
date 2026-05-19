@@ -56,7 +56,11 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-The driver also needs the Python RTDE modules used by `robot.py` (`rtde_control` and `rtde_receive`) available in the same environment.
+The driver also needs the Python RTDE modules used by `robot.py` (`rtde_control` and `rtde_receive`) available in the same environment:
+
+```bash
+python3 -m pip install ur_rtde
+```
 
 Run the node:
 
