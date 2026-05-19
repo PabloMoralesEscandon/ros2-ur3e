@@ -165,6 +165,22 @@ class Robot:
             pose, speed * MAX_SPEED / 100, acc * MAX_ACC / 100, True
         )  # Movimiento asíncrono
 
+    def offset_move(self, offset, speed, acc):
+        """
+        Mueve el TCP desde la posición actual aplicando un offset cartesiano.
+
+        Args:
+            offset (array de floats): Offset [x, y, z] o [x, y, z, rx, ry, rz].
+            speed (float): Velocidad (de 0 a 100) del robot.
+            acc (float): Aceleración (de 0 a 100) del robot.
+        """
+        current_pose = list(self.get_pos())
+        target_pose = current_pose.copy()
+        for index, value in enumerate(offset):
+            target_pose[index] += value
+        self.a_move(target_pose, speed, acc)
+        return target_pose
+
     def joint_move(self, joint, speed, acc):
         """
         Mueve el robot de manera asincrona por posición de sus articulaciones.

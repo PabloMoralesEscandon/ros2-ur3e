@@ -1,0 +1,7 @@
+float64[] offset
+float64 speed
+float64 acceleration
+---
+bool success
+string message
+float64[] target_pose

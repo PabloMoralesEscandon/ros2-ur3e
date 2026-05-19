@@ -9,7 +9,15 @@ from std_msgs.msg import Float64MultiArray
 from std_srvs.srv import Trigger
 
 from robot import Robot
-from ur3e_api.srv import GetAprox, GetVector, MoveJoints, MovePose, Servo, SpeedCommand
+from ur3e_api.srv import (
+    GetAprox,
+    GetVector,
+    MoveJoints,
+    MoveOffset,
+    MovePose,
+    Servo,
+    SpeedCommand,
+)
 
 
 Vector = Sequence[float]
@@ -63,6 +71,7 @@ class UR3eApiNode(Node):
         self.create_service(GetVector, "get_fuerzas", self._handle_get_force)
 
         self.create_service(MovePose, "a_move", self._handle_a_move)
+        self.create_service(MoveOffset, "offset_move", self._handle_offset_move)
         self.create_service(MoveJoints, "joint_move", self._handle_joint_move)
         self.create_service(SpeedCommand, "a_speed", self._handle_a_speed)
         self.create_service(Servo, "servocontrol", self._handle_servocontrol)
@@ -149,6 +158,13 @@ class UR3eApiNode(Node):
         result = [float(item) for item in values]
         if len(result) != expected_len:
             raise ValueError(f"{name} must contain exactly {expected_len} values")
+        return result
+
+    @staticmethod
+    def _validate_offset(values: Vector) -> list[float]:
+        result = [float(item) for item in values]
+        if len(result) not in (3, 6):
+            raise ValueError("offset must contain exactly 3 or 6 values")
         return result
 
     @staticmethod
@@ -250,6 +266,24 @@ class UR3eApiNode(Node):
             )
         except Exception as exc:
             return self._error_response(response, exc)
+
+    def _handle_offset_move(self, request, response):
+        try:
+            offset = self._validate_offset(request.offset)
+            ok, value = self._call_robot(
+                self._robot.offset_move,
+                offset,
+                float(request.speed),
+                float(request.acceleration),
+            )
+            response.success = ok
+            response.message = "ok" if ok else str(value)
+            response.target_pose = [float(item) for item in value] if ok else []
+        except Exception as exc:
+            response.success = False
+            response.message = str(exc)
+            response.target_pose = []
+        return response
 
     def _handle_a_speed(self, request, response):
         try:

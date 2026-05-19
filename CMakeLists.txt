@@ -17,6 +17,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetAprox.srv"
   "srv/GetVector.srv"
   "srv/MoveJoints.srv"
+  "srv/MoveOffset.srv"
   "srv/MovePose.srv"
   "srv/Servo.srv"
   "srv/SpeedCommand.srv"

@@ -39,6 +39,7 @@ Vector getter services using `ur3e_api/srv/GetVector`:
 Command services:
 
 - `a_move` (`ur3e_api/srv/MovePose`): `pose`, `speed`, `acceleration`
+- `offset_move` (`ur3e_api/srv/MoveOffset`): `offset`, `speed`, `acceleration`. The offset can be `[x, y, z]` or `[x, y, z, rx, ry, rz]` in meters/radians.
 - `joint_move` (`ur3e_api/srv/MoveJoints`): `joints`, `speed`, `acceleration`
 - `a_speed` (`ur3e_api/srv/SpeedCommand`): `vector`, `speed`, `acceleration`, `duration`
 - `servocontrol` (`ur3e_api/srv/Servo`): `coordinates`
@@ -78,4 +79,10 @@ Example service call:
 
 ```bash
 ros2 service call /a_move ur3e_api/srv/MovePose "{pose: [-0.192, -0.18212, 0.17233, 2.889, -1.211, 0.051], speed: 20.0, acceleration: 20.0}"
+```
+
+Move 5 mm in positive X and 10 mm in negative Y from the current TCP pose:
+
+```bash
+ros2 service call /offset_move ur3e_api/srv/MoveOffset "{offset: [0.005, -0.010, 0.0], speed: 5.0, acceleration: 5.0}"
 ```
