@@ -1,0 +1,6 @@
+float64[] joints
+float64 speed
+float64 acceleration
+---
+bool success
+string message

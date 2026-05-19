@@ -1,0 +1,7 @@
+float64[] vector
+float64 speed
+float64 acceleration
+float64 duration
+---
+bool success
+string message

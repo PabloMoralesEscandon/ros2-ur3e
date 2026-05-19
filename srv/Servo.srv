@@ -1,0 +1,4 @@
+float64[] coordinates
+---
+bool success
+string message
