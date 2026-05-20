@@ -224,8 +224,8 @@ class Robot:
         Args:
             coord_q (array de floats): Coordenas a las que se debe mover el robot
         """
-        # Coordenada la que moverse, velocidad y aceleración (no se usan), tiempo, lookahead y ganancia
-        self.rtde_c.servoL(coord_q, 0.5, 0.5, 0.002, 0.1, 500)
+        # La UI de teclado envia comandos a unos 20 Hz; este tiempo mantiene servoL sincronizado con ese ciclo.
+        self.rtde_c.servoL(coord_q, 0.5, 0.5, 0.05, 0.1, 500)
 
     def servocontrol_joint(self, coord_q):
         """
